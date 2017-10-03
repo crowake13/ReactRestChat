@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SimpleRestChat.Models.CommandModels
+namespace ReactRestChat.Models.CommandModels
 {
     public class ConversationCommandModel
     {

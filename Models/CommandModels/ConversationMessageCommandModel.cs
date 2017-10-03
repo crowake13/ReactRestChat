@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SimpleRestChat.Models.CommandModels
+namespace ReactRestChat.Models.CommandModels
 {
     public class ConversationMessageCommandModel
     {
