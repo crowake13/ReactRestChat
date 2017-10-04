@@ -33,12 +33,13 @@ export interface IConversationQueryModel {
     participants: IParticipantQueryModel[];
 }
 
-export interface IParticipantQueryModel extends IUserQueryModel {
+export interface IParticipantQueryModel {
+    user: IUserQueryModel;
     lastReadMessageId: string;
     deletedAfterMessageId: string;
 }
 
-export interface IConversationsResponse {
+export interface IConversationListQueryModel {
     conversations: IConversationViewModel[];
     hasMore: boolean;
 }
@@ -47,9 +48,9 @@ export interface IConversationsResponse {
 // ACTIONS - These are serializable (hence replayable) descriptions of state transitions.
 // They do not themselves have any side-effects; they just describe something that is going to happen.
 
-interface SelectConversationAction {
+export interface SelectConversationAction {
     type: 'SELECT_CONVERSATION';
-    id: string;
+    index: number;
 }
 
 interface RequestConversationsAction {
@@ -77,27 +78,20 @@ type KnownAction = SelectConversationAction
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
-    navigateToConversation: (id: string): AppThunkAction<RouterAction> => (dispatch, getState) => {
-        dispatch(push('/conversation/' + id));
-    },
-    selectConversation: (id: string): AppThunkAction<SelectConversationAction> => (dispatch, getState) => {
-        let index = getState().conversations.conversations.map(c => c.id).indexOf(id);
-
-        if (index === -1) ConversationInstanceState.actionCreators.requestConversationById(id);
-    
-        dispatch({ type: 'SELECT_CONVERSATION', id: id });
-    },
     requestConversations: (): AppThunkAction<ConversationsActions> => (dispatch, getState) => {
         let conversationsState = getState().conversations;
 
         if (!conversationsState.isLoading) {
             let pageNumber = conversationsState.pageNumber + 1;
 
-            let fetchTask = fetch(`api/Conversation/GetPage?pageNumber=${ pageNumber }`)
-                .then(response => response.json() as Promise<IConversationsResponse>)
+            let fetchTask = fetch(`api/Conversation/Latest?pageNumber=${ pageNumber }`)
+                .then(response => response.json() as Promise<IConversationListQueryModel>)
                 .then(data => {
                     dispatch({ type: 'RECEIVE_CONVERSATIONS', pageNumber: pageNumber, conversations: data.conversations, hasMore: data.hasMore });
-                    if (!getState().conversations.conversations.length) $("#usersModal").modal();
+                    if (!getState().conversations.conversations.length) {
+                        dispatch(push('/') as any);
+                        $("#usersModal").modal();
+                    }
                 });
 
             addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
@@ -120,10 +114,9 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
     const action = incomingAction as KnownAction;
     switch (action.type) {
         case 'SELECT_CONVERSATION': 
-            let index = state.conversations.map(c => c.id).indexOf(action.id);
-            if (index === -1) break;
-            let conversation: IConversationViewModel = state.conversations.splice(index, 1)[0];
-            
+            let conversation: IConversationViewModel = state.conversations.splice(action.index, 1)[0];
+            if (!conversation) break;
+            state.conversations.forEach(c => c.active = false);
             return {
                 ...state,
                 conversations: [
@@ -135,15 +128,17 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
                 ]
             };
         case 'RECEIVE_CONVERSATION':
-            if (state.conversations.map(c => c.id).indexOf(action.conversation.id) === -1) {
+            if (state.conversations
+                    .map(c => c.id)
+                    .indexOf(action.conversation.id) === -1) {
                 return {
                     ...state,
                     conversations: [
+                        ...state.conversations,
                         {
-                            ...action.conversation as IConversationQueryModel,
+                            ...action.conversation,
                             active: false
-                        } as IConversationViewModel,
-                        ...state.conversations
+                        } as IConversationViewModel
                     ]
                 };
             }
@@ -162,7 +157,10 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
                     isLoading: false,
                     hasMore: action.hasMore,
                     pageNumber: action.pageNumber,
-                    conversations: action.conversations as IConversationViewModel[]
+                    conversations: [
+                        ...action.conversations as IConversationViewModel[],
+                        ...state.conversations
+                    ]
                 };
             }
             break;

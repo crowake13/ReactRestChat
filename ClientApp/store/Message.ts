@@ -1,13 +1,14 @@
 import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator } from 'redux';
 import { AppThunkAction } from './';
-import { IConversationCommandModel } from './Conversations';
+import { IConversationCommandModel, SelectConversationAction } from './Conversations';
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
 
 export interface IMessageState {
     isLoading: boolean;
+    active: boolean;
     id?: string;
     content: string;
 }
@@ -42,7 +43,9 @@ interface ReceiveMessageSavedAction {
 type PostActions = SendMessageAction 
     | ReceiveMessageSavedAction;
 
-type KnownAction = UpdateMessageContentAction | PostActions;
+type KnownAction = UpdateMessageContentAction 
+    | PostActions
+    | SelectConversationAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
@@ -61,12 +64,10 @@ export const actionCreators = {
             conversation: {
                 id: conversationInstanceState.id,
                 title: conversationInstanceState.title,
-                participantIds: conversationInstanceState.participants.map(p => p.id)
+                participantIds: conversationInstanceState.participants.map(p => p.user.id)
             },
             content: messageState.content
         };
-
-        console.info(newMessage);
 
         let fetchTask = fetch(`api/Message`, {
                 method: 'POST',
@@ -88,7 +89,7 @@ export const actionCreators = {
 // ----------------
 // REDUCER - For a given state and action, returns the new state. To support time travel, this must not mutate the old state.
 
-export const unloadedState: IMessageState = { isLoading: false, content: "" };
+export const unloadedState: IMessageState = { isLoading: false, active: false, content: "" };
 
 export const reducer: Reducer<IMessageState> = (state: IMessageState, incomingAction: Action) => {
     const action = incomingAction as KnownAction;
@@ -100,13 +101,18 @@ export const reducer: Reducer<IMessageState> = (state: IMessageState, incomingAc
             };
         case 'POST_MESSAGE':
             return {
-                isLoading: true,
-                content: state.content
+                ...state, 
+                isLoading: true
             };
         case 'MESSAGE_POSTED':
             return {
-                ...state,
-                ...unloadedState
+                ...unloadedState,
+                active: state.active
+            };
+        case 'SELECT_CONVERSATION':
+            return {
+                ...state, 
+                active: true
             };
         default:
             // The following line guarantees that every action in the KnownAction union has been covered by a case above

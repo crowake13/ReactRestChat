@@ -53,7 +53,7 @@ export const actionCreators = {
         if (!usersState.isLoading) {
             let pageNumber = usersState.pageNumber + 1;
     
-            let fetchTask = fetch(`api/User/Page/${ pageNumber }`)
+            let fetchTask = fetch(`api/User/Latest/${ pageNumber }`)
                 .then(response => response.json() as Promise<IUsersQueryModel>)
                 .then(data => {
                     dispatch({ type: 'RECEIVE_USERS', pageNumber: pageNumber, users: data.users, hasMore: data.hasMore });

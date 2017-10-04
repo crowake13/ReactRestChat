@@ -20,7 +20,7 @@ class UserList extends React.Component<IUserProps, { }> {
             className="list-group"
             children={ this.props.users.map((user, index) => 
                 <UserListItem key={ index } user={ user } 
-                    onClick={ this.selectUser.bind(this, [user.id]) } />
+                    onDoubleClick={ this.selectUser.bind(this, [user.id]) } />
             ) }
             loadMore={ this.props.requestUsers }
             hasMore={ this.props.hasMore }

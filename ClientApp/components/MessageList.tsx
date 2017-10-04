@@ -11,7 +11,6 @@ type IUserProps = MessagesState.IMessagesState
 class MessageList extends React.Component<IUserProps, { }> {
     deleteMessage = (messageId: string) => {
         console.info(messageId);
-        // this.props.requestConversationByParticipantIds(participantIds);
     };
 
     public render() {

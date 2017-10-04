@@ -3,10 +3,10 @@ import { connect } from 'react-redux';
 import { ApplicationState }  from '../store';
 import * as MessageState from '../store/Message';
 
-type IUserProps = MessageState.IMessageState
+type IMessageInputProps = MessageState.IMessageState
     & typeof MessageState.actionCreators;
 
-class MessageInput extends React.Component<IUserProps, { }> {
+class MessageInput extends React.Component<IMessageInputProps, { }> {
     onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         this.props.updateContent(e.target.value);
     }
@@ -20,11 +20,11 @@ class MessageInput extends React.Component<IUserProps, { }> {
     }
     
     public render() {
-        return <div className="input-group" style={{ position: "absolute", top: "10px" }}>
+        return <div className="input-group" style={{ position: "absolute", padding: "10px" }}>
             <textarea
                 className="form-control"
                 width={ "100%" }
-                disabled={ this.props.isLoading || !this.props.id }
+                disabled={ !this.props.active || this.props.isLoading }
                 onKeyDown={ this.onKeyDown }
                 onChange={ this.onChange } />
             <span className="input-group-addon btn btn-primary" onClick={ this.props.sendMessage }>

@@ -10,7 +10,7 @@ type IConversationProps = ConversationsState.IConversationsState
 
 class ConversationList extends React.Component<IConversationProps, { }> {
     public render() {
-        return <InfiniteScroll className="list-group"
+        return <InfiniteScroll className="list-group conversation-list"
             children={ this.props.conversations.map((conversation, index) => 
                 <ConversationListItem key={ index } conversation={ conversation } />
             ) }

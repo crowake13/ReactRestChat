@@ -8,12 +8,18 @@ import MessageList from './MessageList';
 
 type IConversationInstanceProps = ConversationInstanceState.IConversationInstanceState
     & typeof ConversationInstanceState.actionCreators
-    & RouteComponentProps<{ id?: string }>;
+    & RouteComponentProps<{ conversationId?: string }>;
 
 class ConversationInstance extends React.Component<IConversationInstanceProps, {}> {
+    componentWillMount() {
+        // if (this.props.match.params.conversationId) this.props.requestConversationById(this.props.match.params.conversationId);
+        console.info(this.props.id);
+        if (this.props.match.params.conversationId) this.props.requestConversationById(this.props.match.params.conversationId);
+    }
+
     componentWillReceiveProps(nextProps: IConversationInstanceProps) {
         // This method runs when incoming props (e.g., route params) change
-        if (nextProps.match.params.id) this.props.requestConversationById(nextProps.match.params.id);
+        if (nextProps.match.params.conversationId) this.props.requestConversationById(nextProps.match.params.conversationId);
     }
 
     public render() {
