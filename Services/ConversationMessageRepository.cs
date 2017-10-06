@@ -16,6 +16,34 @@ namespace ReactRestChat.Services
 
         }
 
+        private IEnumerable<ConversationMessageQueryModel> ToQueryModel(IEnumerable<ConversationMessage> messages)
+        {
+            return messages
+                .Select(cm => new ConversationMessageQueryModel() 
+                {
+                    Id = cm.Id,
+                    Created = cm.Created,
+                    Content = cm.Content,
+                    Sender = new ApplicationUserQueryModel() 
+                    {
+                        Id = cm.Sender.Id,
+                        Username = cm.Sender.UserName
+                    }
+                });
+        }
+
+        public IEnumerable<ConversationMessageQueryModel> GetNewerThen(
+            Guid conversationId, 
+            DateTime newerThenDate)
+        {
+            var messages = _dbContext.ConversationMessages
+                .Include(cm => cm.Sender)
+                .Where(cm => cm.ConversationId == conversationId && cm.Created > newerThenDate)
+                .OrderByDescending(cm => cm.Created);
+
+            return ToQueryModel(messages);
+        }
+
         public IEnumerable<ConversationMessageQueryModel> GetByPage(
             Guid conversationId, 
             int skip = 0, 
@@ -29,18 +57,7 @@ namespace ReactRestChat.Services
 
             if (pageSize.HasValue && pageSize.Value >= 0) messages = messages.Take(pageSize.Value);
 
-            return messages
-                .Select(cm => new ConversationMessageQueryModel() 
-                {
-                    Id = cm.Id,
-                    Created = cm.Created,
-                    Content = cm.Content,
-                    Sender = new ApplicationUserQueryModel() 
-                    {
-                        Id = cm.Sender.Id,
-                        Username = cm.Sender.UserName
-                    }
-                });
+            return ToQueryModel(messages);
         }
         
         public ConversationMessageQueryModel GetById(Guid id)
@@ -62,7 +79,7 @@ namespace ReactRestChat.Services
                 .FirstOrDefault();
         }
 
-        public Guid CreateMessage(Guid conversationId, string senderId, string content)
+        public ConversationMessageCreateQueryModel CreateMessage(Guid conversationId, string senderId, string content)
         {
             if (conversationId == null) throw new Exception("Unable to create a conversation message without a conversation id. ");
             if (String.IsNullOrEmpty(senderId)) throw new Exception("Unable to create a conversation message without a sender id. ");
@@ -78,7 +95,17 @@ namespace ReactRestChat.Services
             _dbContext.ConversationMessages.Add(newConversationMessage);
             _dbContext.SaveChanges();
 
-            return newConversationMessage.Id;
+            return new ConversationMessageCreateQueryModel() 
+            {
+                ConversationId = conversationId, 
+                Id = newConversationMessage.Id,
+                Content = newConversationMessage.Content,
+                Created = newConversationMessage.Created,
+                Sender = new ApplicationUserQueryModel()
+                {
+                    Id = senderId
+                }
+            };
         }
     }
 }
