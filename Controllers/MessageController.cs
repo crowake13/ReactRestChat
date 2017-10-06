@@ -44,7 +44,7 @@ namespace ReactRestChat.Controllers
         }
 
         [HttpPost]
-        public Guid Create([FromBody] ConversationMessageCommandModel message)
+        public ConversationMessageCreateQueryModel Create([FromBody] ConversationMessageCommandModel message)
         {
             if (message.Conversation == null) throw new Exception("Unable to create message without a conversation command model. ");
             
@@ -68,16 +68,18 @@ namespace ReactRestChat.Controllers
                 if (conversationId == null) throw new Exception("Something went wrong while creating a new conversation. ");
             }
             
-            Guid conversationMessageId = _conversationMessageRepository.CreateMessage(conversationId, userId, message.Content);
+            ConversationMessageCreateQueryModel conversationMessageCreate = _conversationMessageRepository.CreateMessage(conversationId, userId, message.Content);
 
-            if (conversationMessageId == null) throw new Exception("Something went wrong while creating a new conversation message. ");
+            conversationMessageCreate.Sender.Username = _userManager.GetUserName(User);
+
+            if (conversationMessageCreate.Id == null) throw new Exception("Something went wrong while creating a new conversation message. ");
 
             if (createNewConversation) {
-                _conversationInstanceRepository.CreateConversationInstance(conversationId, conversationMessageId, userId);
-                _conversationInstanceRepository.CreateConversationInstances(conversationId, conversationMessageId, message.Conversation.ParticipantIds);
+                _conversationInstanceRepository.CreateConversationInstance(conversationId, conversationMessageCreate.Id, userId);
+                _conversationInstanceRepository.CreateConversationInstances(conversationId, conversationMessageCreate.Id, message.Conversation.ParticipantIds);
             }
 
-            return conversationId;
+            return conversationMessageCreate;
         }
     }
 }

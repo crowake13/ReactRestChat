@@ -68,12 +68,22 @@ namespace ReactRestChat.Controllers
         }
 
         [HttpGet("{conversationId}/[action]")]
-        public ConversationMessageListQueryModel Messages(Guid conversationId, int pageNumber = 0)
+        public ConversationMessageListQueryModel NewMessages(Guid conversationId, DateTime newerThenDate)
         {
-            IEnumerable<ConversationMessageQueryModel> messages = _conversationMessageRepository.GetByPage(
-                conversationId,
-                (pageNumber > 0) ? (pageNumber - 1) * _pageSize : 0,
-                _pageSize);
+            IEnumerable<ConversationMessageQueryModel> messages = _conversationMessageRepository.GetNewerThen(conversationId, newerThenDate);
+
+            int count = messages.Count();
+
+            return new ConversationMessageListQueryModel() {
+                Messages = messages,
+                HasMore = count > 0 && _pageSize % count == 0
+            };
+        }
+        
+        [HttpGet("{conversationId}/[action]")]
+        public ConversationMessageListQueryModel Messages(Guid conversationId, int skip = 0)
+        {
+            IEnumerable<ConversationMessageQueryModel> messages = _conversationMessageRepository.GetByPage(conversationId, skip, _pageSize);
 
             int count = messages.Count();
 
