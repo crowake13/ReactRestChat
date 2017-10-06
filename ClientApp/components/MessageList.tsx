@@ -5,20 +5,27 @@ import * as MessagesState from '../store/Messages';
 import MessageListItem from './MessageListItem';
 import InfiniteScroll from 'redux-infinite-scroll';
 
-type IUserProps = MessagesState.IMessagesState
+type IMessageListProps = MessagesState.IMessagesState
     & typeof MessagesState.actionCreators;
 
-class MessageList extends React.Component<IUserProps, { }> {
+class MessageList extends React.Component<IMessageListProps, { timer: number }> {
+    componentDidMount() {
+        let timer = setInterval(this.props.requestNewMessages, 10000);
+        this.setState({timer});
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.state.timer);
+    }
+
     deleteMessage = (messageId: string) => {
         console.info(messageId);
     };
 
     public render() {
-        return <InfiniteScroll 
-            className="list-group"
+        return <InfiniteScroll className="list-group message-list"
             children={ this.props.messages.map((message, index) => 
-                <MessageListItem key={ index } message={ message } 
-                    onDelete={ this.deleteMessage.bind(this, message.id) } />
+                <MessageListItem key={ index } message={ message } />
             ) }
             loadMore={ this.props.requestMessages }
             hasMore={ this.props.hasMore }

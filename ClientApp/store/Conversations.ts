@@ -127,6 +127,7 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
     const action = incomingAction as KnownAction;
     switch (action.type) {
         case 'SELECT_CONVERSATION': 
+            if (state.conversations[action.index].isActive) break;
             state.conversations.forEach(c => c.isActive = false);
             state.conversations[action.index].isActive = true;
             return {
@@ -136,20 +137,16 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
                 ]
             };
         case 'RECEIVE_CONVERSATION_BY_PARTICIPANT_IDS':
-            if (state.conversations
-                    .map(c => c.id)
-                    .indexOf(action.conversation.id) === -1) {
-                return {
-                    ...state,
-                    conversations: [
-                        {
-                            ...action.conversation,
-                            isActive: false
-                        } as IConversationViewModel,
-                        ...state.conversations
-                    ]
-                };
-            }
+            if (state.conversations.map(c => c.id).indexOf(action.conversation.id) === -1) return {
+                ...state,
+                conversations: [
+                    {
+                        ...action.conversation,
+                        isActive: false
+                    } as IConversationViewModel,
+                    ...state.conversations
+                ]
+            };
             break;
         case 'REQUEST_CONVERSATIONS':
             return {
@@ -160,18 +157,13 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
         case 'RECEIVE_CONVERSATIONS':
             // Only accept the incoming data if it matches the most recent request. This ensures we correctly
             // handle out-of-order responses.
-            if (action.pageNumber === state.pageNumber) {
-                return {
-                    ...state, 
-                    isLoading: false,
-                    hasMore: action.hasMore,
-                    pageNumber: action.pageNumber,
-                    conversations: [
-                        ...action.conversations as IConversationViewModel[],
-                        ...state.conversations
-                    ]
-                };
-            }
+            if (action.pageNumber === state.pageNumber) return {
+                ...state, 
+                isLoading: false,
+                hasMore: action.hasMore,
+                pageNumber: action.pageNumber,
+                conversations: state.conversations.concat(action.conversations as IConversationViewModel[])
+            };
             break;
         case 'SHOW_MODAL':
             break;

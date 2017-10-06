@@ -1,7 +1,9 @@
 import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator } from 'redux';
+import { push } from 'react-router-redux';
 import { AppThunkAction } from './';
 import { IConversationCommandModel, SelectConversationAction } from './Conversations';
+import { IUserQueryModel } from './Users';
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
@@ -11,6 +13,17 @@ export interface IMessageState {
     active: boolean;
     id?: string;
     content: string;
+}
+
+export interface IMessageQueryModel {
+    id: string;
+    created: Date;
+    sender: IUserQueryModel;
+    content: string;
+}
+
+export interface IMessageCreateQueryModel extends IMessageQueryModel {
+    conversationId: string;
 }
 
 export interface IMessageCommandModel {
@@ -33,9 +46,9 @@ interface SendMessageAction {
     message: IMessageCommandModel;
 }
 
-interface ReceiveMessageSavedAction {
+export interface ReceiveMessageSavedAction {
     type: 'MESSAGE_POSTED';
-    success: ResponseInit;
+    message: IMessageQueryModel;
 }
 
 // Declare a 'discriminated union' type. This guarantees that all references to 'type' properties contain one of the
@@ -79,9 +92,10 @@ export const actionCreators = {
                 },
                 body: JSON.stringify(newMessage)
             })
-            .then(response => response.json() as Promise<ResponseInit>)
+            .then(response => response.json() as Promise<IMessageCreateQueryModel>)
             .then(data => {
-                dispatch({ type: 'MESSAGE_POSTED', success: data });
+                dispatch({ type: 'MESSAGE_POSTED', message: data });
+                dispatch(push('/' + data.conversationId) as any);
             });
 
         addTask(fetchTask); // Ensure server-side prerendering waits for this to complete

@@ -1,24 +1,19 @@
 import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator } from 'redux';
 import { AppThunkAction } from './';
-import { IUserQueryModel } from './Users';
-import { ConversationByIdReceiveAction, ReceiveConversationByParticipantIdsAction } from '../store/ConversationInstance';
+import { SetConversationAction } from './ConversationInstance';
+import { IMessageQueryModel, ReceiveMessageSavedAction } from './Message';
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
 
 export interface IMessagesState {
+    areNewLoading: boolean;
     isLoading: boolean;
     hasMore: boolean;
-    pageNumber: number;
+    skip?: number;
+    newestMessageDate?: Date;
     messages: IMessageQueryModel[]
-}
-
-export interface IMessageQueryModel {
-    id: string;
-    created: Date;
-    sender: IUserQueryModel;
-    content: string;
 }
 
 export interface IMessagesResponse {
@@ -30,46 +25,78 @@ export interface IMessagesResponse {
 // ACTIONS - These are serializable (hence replayable) descriptions of state transitions.
 // They do not themselves have any side-effects; they just describe something that is going to happen.
 
+interface RequestNewMessagesAction {
+    type: 'REQUEST_NEW_MESSAGES';
+    newerThenDate: Date;
+}
+
+interface ReceiveNewMessagesAction {
+    type: 'RECEIVE_NEW_MESSAGES';
+    newerThenDate: Date;
+    messages: IMessageQueryModel[];
+}
+
 interface RequestMessagesAction {
     type: 'REQUEST_MESSAGES';
-    pageNumber: number;
+    skip: number;
 }
 
 interface ReceiveMessagesAction {
     type: 'RECEIVE_MESSAGES';
     hasMore: boolean;
-    pageNumber: number;
+    skip: number;
     messages: IMessageQueryModel[];
 }
 
 // Declare a 'discriminated union' type. This guarantees that all references to 'type' properties contain one of the
 // declared type strings (and not any other arbitrary string).
-type KnownAction = RequestMessagesAction 
-    | ReceiveMessagesAction 
-    | ConversationByIdReceiveAction
-    | ReceiveConversationByParticipantIdsAction;
+type NewMessagesAction = RequestNewMessagesAction | ReceiveNewMessagesAction;
+type MessageAction = RequestMessagesAction | ReceiveMessagesAction;
+
+type KnownAction = NewMessagesAction | MessageAction | ReceiveMessageSavedAction | SetConversationAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
-    requestMessages: (): AppThunkAction<KnownAction> => (dispatch, getState) => {
+    requestNewMessages: (): AppThunkAction<NewMessagesAction> => (dispatch, getState) => {
+        let messagesState = getState().messages;
+
+        if (!messagesState.messages.length) {
+            actionCreators.requestMessages();
+            return;
+        }
+
+        let conversationId = getState().conversationInstance.id;
+
+        if (!conversationId || messagesState.isLoading) return;
+
+        let newestMessage = messagesState.messages[0];
+        let fetchTask = fetch(`api/Conversation/${conversationId}/NewMessages?newerThenDate=` + newestMessage.created, { credentials: "include" })
+            .then(response => response.json() as Promise<IMessagesResponse>)
+            .then(data => {
+                dispatch({ type: 'RECEIVE_NEW_MESSAGES', newerThenDate: newestMessage.created, messages: data.messages });
+            });
+
+        addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
+        dispatch({ type: 'REQUEST_NEW_MESSAGES', newerThenDate: newestMessage.created });
+    },
+    requestMessages: (): AppThunkAction<MessageAction> => (dispatch, getState) => {
         let conversationId = getState().conversationInstance.id;
         let messagesState = getState().messages;
 
-        if (conversationId && messagesState.isLoading) {
-            let pageNumber = messagesState.pageNumber + 1;
+        if (!conversationId  || messagesState.isLoading) return;
 
-            let fetchTask = fetch(`api/Conversation/${conversationId}/Messages?pageNumber=${ pageNumber }`, { credentials: "include" })
-                .then(response => response.json() as Promise<IMessagesResponse>)
-                .then(data => {
-                    dispatch({ type: 'RECEIVE_MESSAGES', pageNumber: pageNumber, messages: data.messages, hasMore: data.hasMore });
-                });
+        let skip = messagesState.messages.length;
+        let fetchTask = fetch(`api/Conversation/${conversationId}/Messages?skip=${ skip }`, { credentials: "include" })
+            .then(response => response.json() as Promise<IMessagesResponse>)
+            .then(data => {
+                dispatch({ type: 'RECEIVE_MESSAGES', skip: skip, messages: data.messages, hasMore: data.hasMore });
+            });
 
-            addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
-            dispatch({ type: 'REQUEST_MESSAGES', pageNumber: pageNumber });
-        }
+        addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
+        dispatch({ type: 'REQUEST_MESSAGES', skip: skip });
     }
 };
 
@@ -77,38 +104,69 @@ export const actionCreators = {
 // REDUCER - For a given state and action, returns the new state. To support time travel, this must not mutate the old state.
 
 export const unloadedState: IMessagesState = { 
+    areNewLoading: false,
     isLoading: false, 
     hasMore: true, 
-    pageNumber: 0, 
     messages: []
 };
 
 export const reducer: Reducer<IMessagesState> = (state: IMessagesState, incomingAction: Action) => {
     const action = incomingAction as KnownAction;
     switch (action.type) {
-        case 'CONVERSATION_BY_ID_RECEIVE':
-        case 'RECEIVE_CONVERSATION_BY_PARTICIPANT_IDS':
-            actionCreators.requestMessages();
+        case 'REQUEST_NEW_MESSAGES':
+            return {
+                ...state, 
+                areNewLoading: true,
+                newestMessageDate: action.newerThenDate
+            };
+        case 'RECEIVE_NEW_MESSAGES':
+            // Only accept the incoming data if it matches the most recent request. This ensures we correctly
+            // handle out-of-order responses.
+            if (!action.messages.length) return {
+                ...state, 
+                areNewLoading: false,
+                newestMessageDate: undefined
+            };
+            if (action.newerThenDate === state.newestMessageDate) {
+                return {
+                    ...state,
+                    areNewLoading: false,
+                    newestMessageDate: action.messages[0].created,
+                    messages: action.messages.concat(state.messages)
+                };
+            }
             break;
         case 'REQUEST_MESSAGES':
             return {
+                ...state, 
                 isLoading: true,
-                hasMore: state.hasMore,
-                pageNumber: action.pageNumber,
-                messages: state.messages
+                skip: action.skip
             };
         case 'RECEIVE_MESSAGES':
             // Only accept the incoming data if it matches the most recent request. This ensures we correctly
             // handle out-of-order responses.
-            if (action.pageNumber === state.pageNumber) {
+            if (action.skip === state.skip) {
                 return {
+                    ...state,
                     isLoading: false,
                     hasMore: action.hasMore,
-                    pageNumber: action.pageNumber,
-                    messages: action.messages
+                    skip: undefined,
+                    messages: state.messages.concat(action.messages)
                 };
             }
             break;
+        case 'MESSAGE_POSTED':
+            return {
+                ...state, 
+                messages: [
+                    action.message,
+                    ...state.messages
+                ]
+            };
+        case 'SET_CONVERSATION':
+            return {
+                ...unloadedState
+            };
         default:
             // The following line guarantees that every action in the KnownAction union has been covered by a case above
             const exhaustiveCheck: never = action;

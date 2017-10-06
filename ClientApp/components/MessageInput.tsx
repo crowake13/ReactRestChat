@@ -20,7 +20,7 @@ class MessageInput extends React.Component<IMessageInputProps, { }> {
     }
     
     public render() {
-        return <div className="input-group" style={{ position: "absolute", padding: "10px" }}>
+        return <div className="input-group">
             <textarea
                 className="form-control"
                 width={ "100%" }

@@ -13,8 +13,7 @@ type IUserListProps = UsersState.IUsersState
 
 class UserList extends React.Component<IUserListProps, { }> {
     public render() {
-        return <InfiniteScroll 
-            className="list-group"
+        return <InfiniteScroll className="list-group user-list"
             children={ this.props.users.map((user, index) => {
                 let active = this.props.selectedUsers.map(su => su.id).indexOf(user.id) !== -1;
                 return <UserListItem key={ index } user={ user } active={ active }

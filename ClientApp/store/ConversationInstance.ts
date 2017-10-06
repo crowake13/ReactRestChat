@@ -4,7 +4,7 @@ import { push } from 'react-router-redux';
 import { AppThunkAction } from './';
 import * as ConversationsState from './Conversations';
 import { IUnselectUsersAction } from './UserList';
-import { IMessageQueryModel } from './Messages';
+import { IMessageQueryModel } from './Message';
 import * as $ from "jquery";
 import * as Bootstrap from 'bootstrap';
 
