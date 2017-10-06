@@ -71,7 +71,7 @@ export const actionCreators = {
     sendMessage: (): AppThunkAction<PostActions> => (dispatch, getState) => {
         let messageState = getState().message;
 
-        if (!messageState.active || messageState.isLoading) return;
+        if (!messageState.active || !messageState.content || messageState.isLoading) return;
 
         let conversationInstanceState = getState().conversationInstance;
 
