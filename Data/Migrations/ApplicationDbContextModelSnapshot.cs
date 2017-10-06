@@ -186,6 +186,8 @@ namespace ReactRestChat.Data.Migrations
 
                     b.Property<DateTime>("Created");
 
+                    b.Property<DateTime?>("LastMessageCreated");
+
                     b.Property<string>("Title");
 
                     b.HasKey("Id");

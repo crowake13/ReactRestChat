@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
-namespace ReactRestChat.Services
+namespace ReactRestChat.Data
 {
     public interface IEntity
     {

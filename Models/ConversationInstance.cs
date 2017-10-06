@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
-using ReactRestChat.Services;
+using ReactRestChat.Data;
 
 namespace ReactRestChat.Models
 {

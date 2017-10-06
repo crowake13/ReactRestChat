@@ -11,7 +11,7 @@ using System;
 namespace ReactRestChat.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20171003233705_Initial")]
+    [Migration("20171006112554_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -186,6 +186,8 @@ namespace ReactRestChat.Data.Migrations
                         .ValueGeneratedOnAdd();
 
                     b.Property<DateTime>("Created");
+
+                    b.Property<DateTime?>("LastMessageCreated");
 
                     b.Property<string>("Title");
 

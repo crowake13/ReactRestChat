@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
-using ReactRestChat.Services;
+using ReactRestChat.Data;
 
 namespace ReactRestChat.Models
 {
@@ -24,6 +24,8 @@ namespace ReactRestChat.Models
         public DateTime Created { get; private set; }
 
         public string Title { get; set; }
+
+        public DateTime? LastMessageCreated { get; set; }
 
         [ForeignKey("ConversationId")]
         public virtual IEnumerable<ConversationMessage> Messages { get; set; }

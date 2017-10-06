@@ -11,6 +11,6 @@ namespace ReactRestChat.Models
     public class ApplicationUser : IdentityUser
     {
         [ForeignKey("ParticipantId")]
-        public virtual ConversationInstance[] Instances { get; set; }
+        public virtual IEnumerable<ConversationInstance> Instances { get; set; }
     }
 }
