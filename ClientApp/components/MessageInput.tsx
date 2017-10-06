@@ -16,12 +16,18 @@ class MessageInput extends React.Component<IMessageInputProps, { }> {
             e.preventDefault();
             
             this.props.sendMessage();
+            (this.refs.content as HTMLTextAreaElement).value = "";
         }
+    }
+
+    onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        this.props.sendMessage();
+        (this.refs.content as HTMLTextAreaElement).value = "";
     }
     
     public render() {
         return <div className="input-group">
-            <textarea
+            <textarea ref="content"
                 className="form-control"
                 width={ "100%" }
                 disabled={ !this.props.active || this.props.isLoading }
@@ -29,7 +35,7 @@ class MessageInput extends React.Component<IMessageInputProps, { }> {
                 onChange={ this.onChange } />
             <a className="input-group-addon btn btn-primary" 
                 disabled={ !this.props.active || this.props.isLoading }
-                onClick={ this.props.sendMessage }>
+                onClick={ this.onClick }>
                 <span className="glyphicon glyphicon-send"></span>
             </a>
         </div>;
