@@ -2,7 +2,7 @@ import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator } from 'redux';
 import { AppThunkAction } from './';
 import { IUserQueryModel } from './Users';
-import { ReceiveConversationAction } from '../store/ConversationInstance';
+import { ConversationByIdReceiveAction, ReceiveConversationByParticipantIdsAction } from '../store/ConversationInstance';
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
@@ -46,7 +46,8 @@ interface ReceiveMessagesAction {
 // declared type strings (and not any other arbitrary string).
 type KnownAction = RequestMessagesAction 
     | ReceiveMessagesAction 
-    | ReceiveConversationAction;
+    | ConversationByIdReceiveAction
+    | ReceiveConversationByParticipantIdsAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
@@ -60,7 +61,7 @@ export const actionCreators = {
         if (conversationId && messagesState.isLoading) {
             let pageNumber = messagesState.pageNumber + 1;
 
-            let fetchTask = fetch(`api/Conversation/${conversationId}/Messages?pageNumber=${ pageNumber }`)
+            let fetchTask = fetch(`api/Conversation/${conversationId}/Messages?pageNumber=${ pageNumber }`, { credentials: "include" })
                 .then(response => response.json() as Promise<IMessagesResponse>)
                 .then(data => {
                     dispatch({ type: 'RECEIVE_MESSAGES', pageNumber: pageNumber, messages: data.messages, hasMore: data.hasMore });
@@ -85,7 +86,8 @@ export const unloadedState: IMessagesState = {
 export const reducer: Reducer<IMessagesState> = (state: IMessagesState, incomingAction: Action) => {
     const action = incomingAction as KnownAction;
     switch (action.type) {
-        case 'RECEIVE_CONVERSATION':
+        case 'CONVERSATION_BY_ID_RECEIVE':
+        case 'RECEIVE_CONVERSATION_BY_PARTICIPANT_IDS':
             actionCreators.requestMessages();
             break;
         case 'REQUEST_MESSAGES':

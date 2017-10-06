@@ -40,20 +40,22 @@ interface IReceiveUsersAction {
 
 // Declare a 'discriminated union' type. This guarantees that all references to 'type' properties contain one of the
 // declared type strings (and not any other arbitrary string).
-type KnownAction = IRequestUsersAction | IReceiveUsersAction;
+type UsersAction = IRequestUsersAction | IReceiveUsersAction;
+
+type KnownAction = UsersAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
-    requestUsers: (): AppThunkAction<KnownAction> => (dispatch, getState) => {
+    requestUsers: (): AppThunkAction<UsersAction> => (dispatch, getState) => {
         let usersState = getState().users;
 
         if (!usersState.isLoading) {
             let pageNumber = usersState.pageNumber + 1;
     
-            let fetchTask = fetch(`api/User/Latest/${ pageNumber }`)
+            let fetchTask = fetch(`api/User/Latest?pageNumber=${ pageNumber }`, { credentials: "same-origin" })
                 .then(response => response.json() as Promise<IUsersQueryModel>)
                 .then(data => {
                     dispatch({ type: 'RECEIVE_USERS', pageNumber: pageNumber, users: data.users, hasMore: data.hasMore });

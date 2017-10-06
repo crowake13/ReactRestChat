@@ -4,8 +4,8 @@ import { RouterAction, push } from 'react-router-redux';
 import { AppThunkAction } from './';
 import { IUserQueryModel } from './Users';
 import * as ConversationInstanceState from './ConversationInstance';
-import * as $ from "jquery";
-import * as Bootstrap from 'bootstrap';
+import * as UsersState from './Users';
+import * as MainState from './Main';
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
@@ -24,7 +24,8 @@ export interface IConversationCommandModel {
 }
 
 export interface IConversationViewModel extends IConversationQueryModel {
-    active: boolean
+    isActive: boolean,
+    isNew: boolean;
 }
 
 export interface IConversationQueryModel {
@@ -67,11 +68,13 @@ interface ReceiveConversationsAction {
 
 // Declare a 'discriminated union' type. This guarantees that all references to 'type' properties contain one of the
 // declared type strings (and not any other arbitrary string).
-type ConversationsActions = RequestConversationsAction | ReceiveConversationsAction;
+type ConversationsActions = RequestConversationsAction 
+    | ReceiveConversationsAction 
+    | MainState.ShowModalAction 
+    | SelectConversationAction;
 
-type KnownAction = SelectConversationAction 
-    | ConversationsActions
-    | ConversationInstanceState.ReceiveConversationAction;
+type KnownAction =  ConversationsActions
+    | ConversationInstanceState.ReceiveConversationByParticipantIdsAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
@@ -84,13 +87,23 @@ export const actionCreators = {
         if (!conversationsState.isLoading) {
             let pageNumber = conversationsState.pageNumber + 1;
 
-            let fetchTask = fetch(`api/Conversation/Latest?pageNumber=${ pageNumber }`)
+            let fetchTask = fetch(`api/Conversation/Latest?pageNumber=${ pageNumber }`, { credentials: "include" })
                 .then(response => response.json() as Promise<IConversationListQueryModel>)
                 .then(data => {
                     dispatch({ type: 'RECEIVE_CONVERSATIONS', pageNumber: pageNumber, conversations: data.conversations, hasMore: data.hasMore });
-                    if (!getState().conversations.conversations.length) {
+                    let conversations = getState().conversations.conversations;
+
+                    if (!conversations.length) {
                         dispatch(push('/') as any);
-                        $("#usersModal").modal();
+                        return;
+                    }
+
+                    let conversationId = getState().conversationInstance.id;
+
+                    if (conversationId) {
+                        let index = conversations.map(c => c.id).indexOf(conversationId);
+
+                        if (index !== -1) dispatch({ type: 'SELECT_CONVERSATION', index: index });
                     }
                 });
 
@@ -114,31 +127,26 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
     const action = incomingAction as KnownAction;
     switch (action.type) {
         case 'SELECT_CONVERSATION': 
-            let conversation: IConversationViewModel = state.conversations.splice(action.index, 1)[0];
-            if (!conversation) break;
-            state.conversations.forEach(c => c.active = false);
+            state.conversations.forEach(c => c.isActive = false);
+            state.conversations[action.index].isActive = true;
             return {
                 ...state,
                 conversations: [
-                    {
-                        ...conversation,
-                        active: true
-                    } as IConversationViewModel,
                     ...state.conversations
                 ]
             };
-        case 'RECEIVE_CONVERSATION':
+        case 'RECEIVE_CONVERSATION_BY_PARTICIPANT_IDS':
             if (state.conversations
                     .map(c => c.id)
                     .indexOf(action.conversation.id) === -1) {
                 return {
                     ...state,
                     conversations: [
-                        ...state.conversations,
                         {
                             ...action.conversation,
-                            active: false
-                        } as IConversationViewModel
+                            isActive: false
+                        } as IConversationViewModel,
+                        ...state.conversations
                     ]
                 };
             }
@@ -154,6 +162,7 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
             // handle out-of-order responses.
             if (action.pageNumber === state.pageNumber) {
                 return {
+                    ...state, 
                     isLoading: false,
                     hasMore: action.hasMore,
                     pageNumber: action.pageNumber,
@@ -163,6 +172,8 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
                     ]
                 };
             }
+            break;
+        case 'SHOW_MODAL':
             break;
         default:
             // The following line guarantees that every action in the KnownAction union has been covered by a case above

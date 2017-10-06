@@ -2,26 +2,24 @@ import * as React from 'react';
 import { connect } from 'react-redux';
 import { ApplicationState }  from '../store';
 import * as UsersState from '../store/Users';
-import * as ConversationInstanceState from '../store/ConversationInstance';
+import * as UserListState from '../store/UserList';
 import UserListItem from './UserListItem';
 import InfiniteScroll from 'redux-infinite-scroll';
 
-type IUserProps = UsersState.IUsersState
+type IUserListProps = UsersState.IUsersState
+    & UserListState.IUserListState
     & typeof UsersState.actionCreators
-    & typeof ConversationInstanceState.actionCreators;
+    & typeof UserListState.actionCreators;
 
-class UserList extends React.Component<IUserProps, { }> {
-    selectUser = (participantIds: string[]) => {
-        this.props.requestConversationByParticipantIds(participantIds);
-    };
-
+class UserList extends React.Component<IUserListProps, { }> {
     public render() {
         return <InfiniteScroll 
             className="list-group"
-            children={ this.props.users.map((user, index) => 
-                <UserListItem key={ index } user={ user } 
-                    onDoubleClick={ this.selectUser.bind(this, [user.id]) } />
-            ) }
+            children={ this.props.users.map((user, index) => {
+                let active = this.props.selectedUsers.map(su => su.id).indexOf(user.id) !== -1;
+                return <UserListItem key={ index } user={ user } active={ active }
+                    onClick={ active ? this.props.unselectUser.bind(this, user) : this.props.selectUser.bind(this, user) } />
+            }) }
             loadMore={ this.props.requestUsers }
             hasMore={ this.props.hasMore }
             loader={ <div className="loader">Loading ...</div> } />;
@@ -29,9 +27,14 @@ class UserList extends React.Component<IUserProps, { }> {
 }
 
 export default connect(
-    (state: ApplicationState) => state.users,
+    (state: ApplicationState) => {
+        return {
+            ...state.users,
+            ...state.userList
+        };
+    },
     {
-        ...UsersState.actionCreators, 
-        ...ConversationInstanceState.actionCreators
+        ...UsersState.actionCreators,
+        ...UserListState.actionCreators
     }
 )(UserList);

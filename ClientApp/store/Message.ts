@@ -57,6 +57,9 @@ export const actionCreators = {
     },
     sendMessage: (): AppThunkAction<PostActions> => (dispatch, getState) => {
         let messageState = getState().message;
+
+        if (!messageState.active || messageState.isLoading) return;
+
         let conversationInstanceState = getState().conversationInstance;
 
         let newMessage: IMessageCommandModel = {
@@ -69,7 +72,7 @@ export const actionCreators = {
             content: messageState.content
         };
 
-        let fetchTask = fetch(`api/Message`, {
+        let fetchTask = fetch(`api/Message`, { credentials: "include",
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

@@ -12,8 +12,6 @@ type IConversationInstanceProps = ConversationInstanceState.IConversationInstanc
 
 class ConversationInstance extends React.Component<IConversationInstanceProps, {}> {
     componentWillMount() {
-        // if (this.props.match.params.conversationId) this.props.requestConversationById(this.props.match.params.conversationId);
-        console.info(this.props.id);
         if (this.props.match.params.conversationId) this.props.requestConversationById(this.props.match.params.conversationId);
     }
 

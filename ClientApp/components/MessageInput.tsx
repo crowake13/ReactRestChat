@@ -27,9 +27,11 @@ class MessageInput extends React.Component<IMessageInputProps, { }> {
                 disabled={ !this.props.active || this.props.isLoading }
                 onKeyDown={ this.onKeyDown }
                 onChange={ this.onChange } />
-            <span className="input-group-addon btn btn-primary" onClick={ this.props.sendMessage }>
+            <a className="input-group-addon btn btn-primary" 
+                disabled={ !this.props.active || this.props.isLoading }
+                onClick={ this.props.sendMessage }>
                 <span className="glyphicon glyphicon-send"></span>
-            </span>
+            </a>
         </div>;
     }
 }

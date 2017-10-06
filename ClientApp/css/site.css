@@ -1,3 +1,7 @@
+html, 
+body {
+    height: 100%;
+}
 
 #react-app {
     position: absolute;
@@ -37,6 +41,11 @@
     overflow-y: auto;
 }
 
+.list-group-item {
+    overflow-wrap: break-word;
+    cursor: pointer; 
+}
+
 .loader {
     border: 5px solid #f3f3f3;
     -webkit-animation: spin 1s linear infinite;
@@ -50,4 +59,64 @@
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+.modal,
+.modal-backdrop {
+    top: 50px !important;
+}
+
+.modal-body {
+    height: calc(100vh - 300px);
+}
+
+.meme {
+    margin: auto;
+    height: 100%;
+    background-size: 100%; 
+    text-align: center;
+    position: relative;
+  }
+  
+  .meme > p {
+    position: absolute; 
+    left: 0;
+    right: 0; 
+    margin: 15px 0;
+    padding: 0 5px;
+    font-family: impact;
+    font-size: 2.5em;
+    text-transform: uppercase;
+    color: white;
+    letter-spacing: 1px;
+    text-shadow:2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000,
+    0px 2px 0 #000,
+    2px 0px 0 #000,
+    0px -2px 0 #000,
+    -2px 0px 0 #000,
+    2px 2px 5px #000;
+  }
+  
+  .meme > p.bottom {
+     bottom: 0;
+   }
+  
+  .meme > p.top {
+     top: 0;
+   }
+
+.float-left {
+    float: left;
+}
+
+.float-right {
+    float: right;
+}
+
+a[disabled] {
+    cursor: not-allowed;
+    pointer-events: none;
 }
