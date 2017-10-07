@@ -13,7 +13,7 @@ import { ShowModalAction } from './Main';
 export interface IConversationsState {
     isLoading: boolean;
     hasMore: boolean;
-    pageNumber: number;
+    skip: number;
     conversations: IConversationViewModel[];
 }
 
@@ -56,13 +56,13 @@ export interface SelectConversationAction {
 
 interface RequestConversationsAction {
     type: 'REQUEST_CONVERSATIONS';
-    pageNumber: number;
+    skip: number;
 }
 
 interface ReceiveConversationsAction {
     type: 'RECEIVE_CONVERSATIONS';
     hasMore: boolean;
-    pageNumber: number;
+    skip: number;
     conversations: IConversationQueryModel[];
 }
 
@@ -85,12 +85,12 @@ export const actionCreators = {
         let conversationsState = getState().conversations;
 
         if (!conversationsState.isLoading) {
-            let pageNumber = conversationsState.pageNumber + 1;
+            let skip = conversationsState.conversations.length;
 
-            let fetchTask = fetch(`api/Conversation/Latest?pageNumber=${ pageNumber }`, { credentials: "include" })
+            let fetchTask = fetch(`api/Conversation/Latest?skip=${ skip }`, { credentials: "include" })
                 .then(response => response.json() as Promise<IConversationListQueryModel>)
                 .then(data => {
-                    dispatch({ type: 'RECEIVE_CONVERSATIONS', pageNumber: pageNumber, conversations: data.conversations, hasMore: data.hasMore });
+                    dispatch({ type: 'RECEIVE_CONVERSATIONS', skip: skip, conversations: data.conversations, hasMore: data.hasMore });
                     let conversations = getState().conversations.conversations;
 
                     if (!conversations.length) {
@@ -108,7 +108,7 @@ export const actionCreators = {
                 });
 
             addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
-            dispatch({ type: 'REQUEST_CONVERSATIONS', pageNumber: pageNumber });
+            dispatch({ type: 'REQUEST_CONVERSATIONS', skip: skip });
         }
     }
 };
@@ -119,7 +119,7 @@ export const actionCreators = {
 export const unloadedState: IConversationsState = { 
     isLoading: false, 
     hasMore: true, 
-    pageNumber: 0, 
+    skip: 0, 
     conversations: []
 };
 
@@ -152,16 +152,16 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
             return {
                 ...state, 
                 isLoading: true,
-                pageNumber: action.pageNumber
+                skip: action.skip
             };
         case 'RECEIVE_CONVERSATIONS':
             // Only accept the incoming data if it matches the most recent request. This ensures we correctly
             // handle out-of-order responses.
-            if (action.pageNumber === state.pageNumber) return {
+            if (action.skip === state.skip) return {
                 ...state, 
                 isLoading: false,
                 hasMore: action.hasMore,
-                pageNumber: action.pageNumber,
+                skip: action.skip,
                 conversations: state.conversations.concat(action.conversations as IConversationViewModel[])
             };
             break;

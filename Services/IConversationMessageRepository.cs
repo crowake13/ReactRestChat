@@ -8,7 +8,7 @@ namespace ReactRestChat.Services
 {
     public interface IConversationMessageRepository : IRepository<ConversationMessage>
     {
-        IEnumerable<ConversationMessageQueryModel> GetNewerThen(Guid conversationId, DateTime newerThenDate);
+        IEnumerable<ConversationMessageQueryModel> GetNewerThen(string senderId, Guid conversationId, DateTime newerThenDate);
         IEnumerable<ConversationMessageQueryModel> GetByPage(string senderId, Guid conversationId, int skip, int? pageSize);
         ConversationMessageQueryModel GetLatest(Guid conversationId);
         ConversationMessageQueryModel GetById(Guid id);

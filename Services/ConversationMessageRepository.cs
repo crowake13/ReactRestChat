@@ -34,12 +34,15 @@ namespace ReactRestChat.Services
         }
 
         public IEnumerable<ConversationMessageQueryModel> GetNewerThen(
+            string senderId, 
             Guid conversationId, 
             DateTime newerThenDate)
         {
             var messages = _entity
                 .Include(cm => cm.Sender)
-                .Where(cm => cm.ConversationId == conversationId && cm.Created > newerThenDate)
+                .Where(cm => cm.ConversationId == conversationId 
+                    && (cm.Deleted == null || cm.SenderId != senderId)
+                    && cm.Created > newerThenDate)
                 .OrderByDescending(cm => cm.Created);
 
             return ToQueryModel(messages);

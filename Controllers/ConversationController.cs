@@ -37,14 +37,11 @@ namespace ReactRestChat.Controllers
         }
         
         [HttpGet("[action]")]
-        public ConversationListQueryModel Latest(int pageNumber = 0)
+        public ConversationListQueryModel Latest(int skip = 0)
         {
             string userId = _userManager.GetUserId(User);
 
-            IEnumerable<ConversationQueryModel> conversations = _conversationRepository.GetByPage(
-                userId,
-                (pageNumber > 0) ? (pageNumber - 1) * _pageSize : 0,
-                _pageSize);
+            IEnumerable<ConversationQueryModel> conversations = _conversationRepository.GetByPage(userId, skip, _pageSize);
 
             int count = conversations.Count();
 
@@ -92,7 +89,7 @@ namespace ReactRestChat.Controllers
             IEnumerable<ConversationMessageQueryModel> messages = new List<ConversationMessageQueryModel>();
 
             if (_conversationInstanceRepository.Exists(conversationId, userId)) 
-                messages = _conversationMessageRepository.GetNewerThen(conversationId, newerThenDate);
+                messages = _conversationMessageRepository.GetNewerThen(userId, conversationId, newerThenDate);
 
             return messages;
         }
