@@ -31,12 +31,12 @@ namespace ReactRestChat.Controllers
             _signInManager = signInManager;
         }
         
-        private IEnumerable<ApplicationUserQueryModel> getUsers(int? pageSize = null, int skip = 0)
+        private IEnumerable<ApplicationUserQueryModel> getUsers(int skip = 0, int? pageSize = null, string search = null)
         {
             string userId = _userManager.GetUserId(User);
 
             IEnumerable<ApplicationUser> users = _context.Users
-                .Where(u => u.Id != userId)
+                .Where(u => u.Id != userId && (search != null ? u.UserName.Contains(search) : true))
                 .OrderBy(u => u.UserName)
                 .Skip(skip);
 
@@ -50,11 +50,9 @@ namespace ReactRestChat.Controllers
         }
 
         [HttpGet("[action]")]
-        public ApplicationUserResponse Latest(int pageNumber)
+        public ApplicationUserResponse Latest(int skip, string search)
         {
-            IEnumerable<ApplicationUserQueryModel> users = getUsers(
-                _pageSize,
-                (pageNumber > 0) ? (pageNumber - 1) * _pageSize : 0);
+            IEnumerable<ApplicationUserQueryModel> users = getUsers(skip, _pageSize, search);
 
             int count = users.Count();
 

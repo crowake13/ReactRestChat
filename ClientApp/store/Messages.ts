@@ -127,7 +127,6 @@ export const actionCreators = {
         if (!conversationId || messagesState.isLoading) return;
 
         let newestMessageDate = messagesState.messages[0].created.slice(0, 26);
-        console.info(newestMessageDate)
         let fetchTask = fetch(`api/Conversation/${conversationId}/NewMessages?newerThenDate=` + newestMessageDate, { credentials: "include" })
             .then(response => response.json() as Promise<IMessageQueryModel[]>)
             .then(data => {

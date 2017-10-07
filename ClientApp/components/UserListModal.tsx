@@ -7,7 +7,7 @@ import * as ConversationInstanceState from '../store/ConversationInstance';
 import Meme, { IMemeProps } from './Meme';
 import Modal from './Modal';
 import UserList from './UserList';
-import * as $ from "jquery";
+import UserSearchInput from './UserSearchInput';
 
 type IUserListModalProps = UsersState.IUsersState
     & UserListState.IUserListState
@@ -18,7 +18,7 @@ type IUserListModalProps = UsersState.IUsersState
 class UserListModal extends React.Component<IUserListModalProps, { }> {
     renderBody() {
         if (!this.props.users.length) {
-            if (!this.props.hasMore) {
+            if (!this.props.hasMore && !this.props.search && !this.props.isLoading) {
                 let memeProps: IMemeProps = {
                     imageSrc: "/images/ForeverAlone.jpg",
                     topText: "Congratulations!",
@@ -44,10 +44,27 @@ class UserListModal extends React.Component<IUserListModalProps, { }> {
         </div>;
     }
 
+    onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            
+            this.props.searchUsers((e.target as HTMLTextAreaElement).value);
+            this.props.requestUsers();
+        }
+    }
+
+    onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        this.props.searchUsers((this.refs.search as HTMLTextAreaElement).value);
+        this.props.requestUsers();
+    }
+    
     public render() {
         return <Modal id="user-list-modal" title="Select user(s) to create a new conversation" minBodyHeight="300px">
-            <div key="body" style={{height: "100%"}}>{this.renderBody()}</div>
-            <div key="footer">{this.renderFooter()}</div>
+            <div key="body" style={{height: "100%"}}>
+                <UserSearchInput />
+                { this.renderBody() }
+            </div>
+            <div key="footer">{ this.renderFooter() }</div>
         </Modal>;
     }
 }

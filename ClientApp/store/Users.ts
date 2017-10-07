@@ -6,6 +6,7 @@ import { AppThunkAction } from './';
 // STATE - This defines the type of data maintained in the Redux store.
 
 export interface IUsersState {
+    search?: string;
     isLoading: boolean;
     hasMore: boolean;
     pageNumber: number;
@@ -26,15 +27,20 @@ export interface IUsersQueryModel {
 // ACTIONS - These are serializable (hence replayable) descriptions of state transitions.
 // They do not themselves have any side-effects; they just describe something that is going to happen.
 
+interface SearchUsersAction {
+    type: 'SEARCH_USERS';
+    search?: string;
+}
+
 interface IRequestUsersAction {
     type: 'REQUEST_USERS';
-    pageNumber: number;
+    skip: number;
 }
 
 interface IReceiveUsersAction {
     type: 'RECEIVE_USERS';
     users: IUserQueryModel[];
-    pageNumber: number;
+    skip: number;
     hasMore: boolean;
 }
 
@@ -42,27 +48,30 @@ interface IReceiveUsersAction {
 // declared type strings (and not any other arbitrary string).
 type UsersAction = IRequestUsersAction | IReceiveUsersAction;
 
-type KnownAction = UsersAction;
+type KnownAction = SearchUsersAction | UsersAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
-    requestUsers: (): AppThunkAction<UsersAction> => (dispatch, getState) => {
+    searchUsers: (search: string): AppThunkAction<SearchUsersAction> => (dispatch, getState) => {
+        dispatch({ type: 'SEARCH_USERS', search: search });
+    },
+    requestUsers: (): AppThunkAction<SearchUsersAction | UsersAction> => (dispatch, getState) => {
         let usersState = getState().users;
 
         if (!usersState.isLoading) {
-            let pageNumber = usersState.pageNumber + 1;
-    
-            let fetchTask = fetch(`api/User/Latest?pageNumber=${ pageNumber }`, { credentials: "same-origin" })
+            let skip = usersState.users.length;
+            let search = usersState.search;
+            let fetchTask = fetch(`api/User/Latest?skip=${ skip }` + (search ? "&search=" + search : ""), { credentials: "same-origin" })
                 .then(response => response.json() as Promise<IUsersQueryModel>)
                 .then(data => {
-                    dispatch({ type: 'RECEIVE_USERS', pageNumber: pageNumber, users: data.users, hasMore: data.hasMore });
+                    dispatch({ type: 'RECEIVE_USERS', skip: skip, users: data.users, hasMore: data.hasMore });
                 });
 
             addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
-            dispatch({ type: 'REQUEST_USERS', pageNumber: pageNumber });
+            dispatch({ type: 'REQUEST_USERS', skip: skip });
         }
     }
 };
@@ -80,18 +89,27 @@ export const unloadedState: IUsersState = {
 export const reducer: Reducer<IUsersState> = (state: IUsersState, incomingAction: Action) => {
     const action = incomingAction as KnownAction;
     switch (action.type) {
+        case 'SEARCH_USERS':
+            if (action.search != state.search) return {
+                ...state, 
+                users: [],
+                search: action.search
+            };
+            break;
         case 'REQUEST_USERS':
             return {
+                ...state,
                 isLoading: true,
                 hasMore: state.hasMore,
-                pageNumber: action.pageNumber,
+                pageNumber: action.skip,
                 users: state.users
             };
         case 'RECEIVE_USERS':
             return {
+                ...state,
                 isLoading: false,
                 hasMore: action.hasMore,
-                pageNumber: action.pageNumber,
+                pageNumber: action.skip,
                 users: state.users.concat(action.users)
             };
         default:
