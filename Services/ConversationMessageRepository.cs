@@ -20,6 +20,7 @@ namespace ReactRestChat.Services
         private IEnumerable<ConversationMessageQueryModel> ToQueryModel(IEnumerable<ConversationMessage> messages)
         {
             return messages
+                .Where(cm => cm.Deleted == null)
                 .Select(cm => new ConversationMessageQueryModel() 
                 {
                     Id = cm.Id,
@@ -52,7 +53,13 @@ namespace ReactRestChat.Services
         {
             var messages = _entity
                 .Include(cm => cm.Sender)
-                .Where(cm => cm.ConversationId == conversationId)
+                .Include(cm => cm.Conversation)
+                    .ThenInclude(c => c.Instances)
+                .Where(cm => cm.ConversationId == conversationId 
+                    && cm.Conversation.Instances
+                        .Where(ci => ci.Deleted != null)
+                        .Select(ci => ci.Deleted)
+                        .All(date => cm.Created > date))
                 .OrderByDescending(cm => cm.Created)
                 .Skip(skip);
 
