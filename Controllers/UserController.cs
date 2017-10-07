@@ -14,7 +14,6 @@ namespace ReactRestChat.Controllers
     [Route("api/[controller]")]
     public class UserController : Controller
     {
-        static int _issueCount = 0;
         private int _pageSize;
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;

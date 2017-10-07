@@ -18,7 +18,6 @@ namespace ReactRestChat.Controllers
     [Route("api/[controller]")]
     public class MessageController : Controller
     {
-        private int _pageSize;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConversationRepository _conversationRepository;
         private readonly IConversationMessageRepository _conversationMessageRepository;
@@ -30,7 +29,6 @@ namespace ReactRestChat.Controllers
             IConversationMessageRepository conversationMessageRepository,
             IConversationInstanceRepository conversationInstanceRepository)
         {
-            _pageSize = 1;
             _userManager = userManager;
             _conversationRepository = conversationRepository;
             _conversationMessageRepository = conversationMessageRepository;
