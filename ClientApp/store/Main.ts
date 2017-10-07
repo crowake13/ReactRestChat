@@ -19,7 +19,7 @@ export interface ShowModalAction {
     id: string;
 }
 
-interface HideModalAction {
+export interface HideModalAction {
     type: 'HIDE_MODAL';
     id: string;
 }

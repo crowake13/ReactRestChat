@@ -10,6 +10,7 @@ namespace ReactRestChat.Services
     {
         IEnumerable<ConversationMessageQueryModel> GetNewerThen(Guid conversationId, DateTime newerThenDate);
         IEnumerable<ConversationMessageQueryModel> GetByPage(Guid conversationId, int skip, int? pageSize);
+        ConversationMessageQueryModel GetLatest(Guid conversationId);
         ConversationMessageQueryModel GetById(Guid id);
         ConversationMessageCreateQueryModel CreateMessage(Guid conversationId, string senderId, string content);
     }

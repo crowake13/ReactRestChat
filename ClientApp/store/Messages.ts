@@ -1,7 +1,7 @@
 import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator } from 'redux';
 import { AppThunkAction } from './';
-import { SetConversationAction } from './ConversationInstance';
+import { SetConversationAction, DeleteConversationByIdReceiveAction } from './ConversationInstance';
 import { IMessageQueryModel, ReceiveMessageSavedAction } from './Message';
 
 // -----------------
@@ -12,7 +12,7 @@ export interface IMessagesState {
     isLoading: boolean;
     hasMore: boolean;
     skip?: number;
-    newestMessageDate?: Date;
+    newestMessageDate?: string;
     messages: IMessageQueryModel[]
 }
 
@@ -27,12 +27,12 @@ export interface IMessagesResponse {
 
 interface RequestNewMessagesAction {
     type: 'REQUEST_NEW_MESSAGES';
-    newerThenDate: Date;
+    newerThenDate: string;
 }
 
 interface ReceiveNewMessagesAction {
     type: 'RECEIVE_NEW_MESSAGES';
-    newerThenDate: Date;
+    newerThenDate: string;
     messages: IMessageQueryModel[];
 }
 
@@ -53,7 +53,7 @@ interface ReceiveMessagesAction {
 type NewMessagesAction = RequestNewMessagesAction | ReceiveNewMessagesAction;
 type MessageAction = RequestMessagesAction | ReceiveMessagesAction;
 
-type KnownAction = NewMessagesAction | MessageAction | ReceiveMessageSavedAction | SetConversationAction;
+type KnownAction = NewMessagesAction | MessageAction | ReceiveMessageSavedAction | SetConversationAction | DeleteConversationByIdReceiveAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
@@ -72,15 +72,17 @@ export const actionCreators = {
 
         if (!conversationId || messagesState.isLoading) return;
 
-        let newestMessage = messagesState.messages[0];
-        let fetchTask = fetch(`api/Conversation/${conversationId}/NewMessages?newerThenDate=` + newestMessage.created, { credentials: "include" })
-            .then(response => response.json() as Promise<IMessagesResponse>)
+        let newestMessageDate = messagesState.messages[0].created.slice(0, 26);
+        console.info(newestMessageDate)
+        let fetchTask = fetch(`api/Conversation/${conversationId}/NewMessages?newerThenDate=` + newestMessageDate, { credentials: "include" })
+            .then(response => response.json() as Promise<IMessageQueryModel[]>)
             .then(data => {
-                dispatch({ type: 'RECEIVE_NEW_MESSAGES', newerThenDate: newestMessage.created, messages: data.messages });
+                console.info
+                dispatch({ type: 'RECEIVE_NEW_MESSAGES', newerThenDate: newestMessageDate, messages: data });
             });
 
         addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
-        dispatch({ type: 'REQUEST_NEW_MESSAGES', newerThenDate: newestMessage.created });
+        dispatch({ type: 'REQUEST_NEW_MESSAGES', newerThenDate: newestMessageDate });
     },
     requestMessages: (): AppThunkAction<MessageAction> => (dispatch, getState) => {
         let conversationId = getState().conversationInstance.id;
@@ -163,6 +165,7 @@ export const reducer: Reducer<IMessagesState> = (state: IMessagesState, incoming
                     ...state.messages
                 ]
             };
+        case 'DELETE_CONVERSATION_BY_ID_RECEIVE':
         case 'SET_CONVERSATION':
             return {
                 ...unloadedState

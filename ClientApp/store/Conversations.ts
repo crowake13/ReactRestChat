@@ -3,9 +3,9 @@ import { Action, Reducer, ActionCreator } from 'redux';
 import { RouterAction, push } from 'react-router-redux';
 import { AppThunkAction } from './';
 import { IUserQueryModel } from './Users';
-import * as ConversationInstanceState from './ConversationInstance';
+import { ReceiveConversationByParticipantIdsAction, DeleteConversationByIdReceiveAction } from './ConversationInstance';
 import * as UsersState from './Users';
-import * as MainState from './Main';
+import { ShowModalAction } from './Main';
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
@@ -70,18 +70,18 @@ interface ReceiveConversationsAction {
 // declared type strings (and not any other arbitrary string).
 type ConversationsActions = RequestConversationsAction 
     | ReceiveConversationsAction 
-    | MainState.ShowModalAction 
     | SelectConversationAction;
 
 type KnownAction =  ConversationsActions
-    | ConversationInstanceState.ReceiveConversationByParticipantIdsAction;
+    | ReceiveConversationByParticipantIdsAction
+    | DeleteConversationByIdReceiveAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
-    requestConversations: (): AppThunkAction<ConversationsActions> => (dispatch, getState) => {
+    requestConversations: (): AppThunkAction<ConversationsActions | ShowModalAction> => (dispatch, getState) => {
         let conversationsState = getState().conversations;
 
         if (!conversationsState.isLoading) {
@@ -165,8 +165,16 @@ export const reducer: Reducer<IConversationsState> = (state: IConversationsState
                 conversations: state.conversations.concat(action.conversations as IConversationViewModel[])
             };
             break;
-        case 'SHOW_MODAL':
-            break;
+        case 'DELETE_CONVERSATION_BY_ID_RECEIVE':
+            let index = state.conversations.map(c => c.id).indexOf(action.id);
+            if (index == -1) break;
+            state.conversations.splice(index, 1);
+            return {
+                ...state,
+                conversations: [
+                    ...state.conversations
+                ]
+            };
         default:
             // The following line guarantees that every action in the KnownAction union has been covered by a case above
             const exhaustiveCheck: never = action;

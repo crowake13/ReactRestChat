@@ -21,16 +21,19 @@ namespace ReactRestChat.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConversationRepository _conversationRepository;
         private readonly IConversationMessageRepository _conversationMessageRepository;
+        private readonly IConversationInstanceRepository _conversationInstanceRepository;
         
         public ConversationController(
             UserManager<ApplicationUser> userManager,
             IConversationRepository conversationRepository,
-            IConversationMessageRepository conversationMessageRepository)
+            IConversationMessageRepository conversationMessageRepository,
+            IConversationInstanceRepository conversationInstanceRepository)
         {
             _pageSize = 1;
             _userManager = userManager;
             _conversationRepository = conversationRepository;
             _conversationMessageRepository = conversationMessageRepository;
+            _conversationInstanceRepository = conversationInstanceRepository;
         }
         
         [HttpGet("[action]")]
@@ -67,23 +70,38 @@ namespace ReactRestChat.Controllers
             return _conversationRepository.GetById(userId, id);
         }
 
-        [HttpGet("{conversationId}/[action]")]
-        public ConversationMessageListQueryModel NewMessages(Guid conversationId, DateTime newerThenDate)
+        [HttpDelete("{id}")]
+        public bool DeleteById(Guid id)
         {
-            IEnumerable<ConversationMessageQueryModel> messages = _conversationMessageRepository.GetNewerThen(conversationId, newerThenDate);
+            string userId = _userManager.GetUserId(User);
 
-            int count = messages.Count();
+            ConversationMessageQueryModel message = _conversationMessageRepository.GetLatest(id);
 
-            return new ConversationMessageListQueryModel() {
-                Messages = messages,
-                HasMore = count > 0 && _pageSize % count == 0
-            };
+            return _conversationInstanceRepository.Delete(id, userId, message.Id);
+        }
+
+        [HttpGet("{conversationId}/[action]")]
+        public IEnumerable<ConversationMessageQueryModel> NewMessages(Guid conversationId, DateTime newerThenDate)
+        {
+            string userId = _userManager.GetUserId(User);
+
+            IEnumerable<ConversationMessageQueryModel> messages = new List<ConversationMessageQueryModel>();
+
+            if (_conversationInstanceRepository.Exists(conversationId, userId)) 
+                messages = _conversationMessageRepository.GetNewerThen(conversationId, newerThenDate);
+
+            return messages;
         }
         
         [HttpGet("{conversationId}/[action]")]
         public ConversationMessageListQueryModel Messages(Guid conversationId, int skip = 0)
         {
-            IEnumerable<ConversationMessageQueryModel> messages = _conversationMessageRepository.GetByPage(conversationId, skip, _pageSize);
+            string userId = _userManager.GetUserId(User);
+
+            IEnumerable<ConversationMessageQueryModel> messages = new List<ConversationMessageQueryModel>();
+
+            if (_conversationInstanceRepository.Exists(conversationId, userId)) 
+                messages = _conversationMessageRepository.GetByPage(conversationId, skip, _pageSize);
 
             int count = messages.Count();
 

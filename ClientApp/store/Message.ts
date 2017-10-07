@@ -2,6 +2,7 @@ import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator } from 'redux';
 import { push } from 'react-router-redux';
 import { AppThunkAction } from './';
+import { SetConversationAction, DeleteConversationByIdReceiveAction } from './ConversationInstance';
 import { IConversationCommandModel, SelectConversationAction } from './Conversations';
 import { IUserQueryModel } from './Users';
 
@@ -17,7 +18,7 @@ export interface IMessageState {
 
 export interface IMessageQueryModel {
     id: string;
-    created: Date;
+    created: string;
     sender: IUserQueryModel;
     content: string;
 }
@@ -58,7 +59,9 @@ type PostActions = SendMessageAction
 
 type KnownAction = UpdateMessageContentAction 
     | PostActions
-    | SelectConversationAction;
+    | SelectConversationAction
+    | SetConversationAction
+    | DeleteConversationByIdReceiveAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
@@ -130,6 +133,11 @@ export const reducer: Reducer<IMessageState> = (state: IMessageState, incomingAc
             return {
                 ...state, 
                 active: true
+            };
+        case 'DELETE_CONVERSATION_BY_ID_RECEIVE':
+        case 'SET_CONVERSATION':
+            return {
+                ...unloadedState
             };
         default:
             // The following line guarantees that every action in the KnownAction union has been covered by a case above

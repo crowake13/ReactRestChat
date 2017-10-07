@@ -10,10 +10,11 @@ namespace ReactRestChat.Services
 {
     public class ConversationMessageRepository : Repository<ConversationMessage>, IConversationMessageRepository
     {
+        private readonly DbSet<ConversationMessage> _entity;
         public ConversationMessageRepository(ApplicationDbContext context)
             : base(context)
         {
-
+            _entity = context.Set<ConversationMessage>();
         }
 
         private IEnumerable<ConversationMessageQueryModel> ToQueryModel(IEnumerable<ConversationMessage> messages)
@@ -36,7 +37,7 @@ namespace ReactRestChat.Services
             Guid conversationId, 
             DateTime newerThenDate)
         {
-            var messages = _dbContext.ConversationMessages
+            var messages = _entity
                 .Include(cm => cm.Sender)
                 .Where(cm => cm.ConversationId == conversationId && cm.Created > newerThenDate)
                 .OrderByDescending(cm => cm.Created);
@@ -49,7 +50,7 @@ namespace ReactRestChat.Services
             int skip = 0, 
             int? pageSize = null)
         {
-            var messages = _dbContext.ConversationMessages
+            var messages = _entity
                 .Include(cm => cm.Sender)
                 .Where(cm => cm.ConversationId == conversationId)
                 .OrderByDescending(cm => cm.Created)
@@ -60,23 +61,24 @@ namespace ReactRestChat.Services
             return ToQueryModel(messages);
         }
         
+        public ConversationMessageQueryModel GetLatest(Guid conversationId)
+        {
+            var messages = _entity
+                .Include(cm => cm.Sender)
+                .Where(cm => cm.ConversationId == conversationId)
+                .OrderByDescending(cm => cm.Created)
+                .Take(1);
+
+            return ToQueryModel(messages).FirstOrDefault();
+        }
+
         public ConversationMessageQueryModel GetById(Guid id)
         {
-            return _dbContext.ConversationMessages
+            var messages = _entity
                 .Include(cm => cm.Sender)
-                .Where(cm => cm.Id == id)
-                .Select(cm => new ConversationMessageQueryModel() 
-                {
-                    Id = cm.Id,
-                    Created = cm.Created,
-                    Content = cm.Content,
-                    Sender =  new ApplicationUserQueryModel() 
-                        {
-                            Id = cm.Sender.Id,
-                            Username = cm.Sender.UserName
-                        }
-                })
-                .FirstOrDefault();
+                .Where(cm => cm.Id == id);
+
+            return ToQueryModel(messages).FirstOrDefault();
         }
 
         public ConversationMessageCreateQueryModel CreateMessage(Guid conversationId, string senderId, string content)
@@ -92,7 +94,7 @@ namespace ReactRestChat.Services
                 Content = content
             };
 
-            _dbContext.ConversationMessages.Add(newConversationMessage);
+            _entity.Add(newConversationMessage);
             _dbContext.SaveChanges();
 
             return new ConversationMessageCreateQueryModel() 

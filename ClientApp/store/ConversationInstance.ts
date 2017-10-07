@@ -5,6 +5,7 @@ import { AppThunkAction } from './';
 import * as ConversationsState from './Conversations';
 import { IUnselectUsersAction } from './UserList';
 import { IMessageQueryModel } from './Message';
+import { HideModalAction } from './Main';
 import * as $ from "jquery";
 import * as Bootstrap from 'bootstrap';
 
@@ -12,8 +13,10 @@ import * as Bootstrap from 'bootstrap';
 // STATE - This defines the type of data maintained in the Redux store.
 
 export interface IConversationInstanceState {
+    isDeleteLoading: boolean;
     isLoading: boolean;
     requestedId?: string;
+    deleteId?: string;
     id?: string;
     title: string;
     participants: ConversationsState.IParticipantQueryModel[];
@@ -30,6 +33,20 @@ export interface IConversationInstanceQueryModel {
 // -----------------
 // ACTIONS - These are serializable (hence replayable) descriptions of state transitions.
 // They do not themselves have any side-effects; they just describe something that is going to happen.
+
+export interface DeleteConversationByIdRequestAction {
+    type: 'DELETE_CONVERSATION_BY_ID_REQUEST';
+    id: string;
+}
+
+export interface DeleteConversationByIdReceiveAction {
+    type: 'DELETE_CONVERSATION_BY_ID_RECEIVE';
+    id: string;
+}
+
+export interface DeleteConversationByIdRequestFailedAction {
+    type: 'DELETE_CONVERSATION_BY_ID_REQUEST_FAILED';
+}
 
 export interface SetConversationAction {
     type: 'SET_CONVERSATION';
@@ -54,7 +71,7 @@ export interface ConversationByIdRequestFailedAction {
     type: 'CONVERSATION_BY_ID_REQUEST_FAILED';
 }
 
-interface RequestConversationByParticipantIdsAction {
+export interface RequestConversationByParticipantIdsAction {
     type: 'REQUEST_CONVERSATION_BY_PARTICIPANT_IDS';
     participantIds: string[];
 }
@@ -66,6 +83,10 @@ export interface ReceiveConversationByParticipantIdsAction {
 
 // Declare a 'discriminated union' type. This guarantees that all references to 'type' properties contain one of the
 // declared type strings (and not any other arbitrary string).
+type DeleteConversationByIdAction = DeleteConversationByIdRequestAction 
+    | DeleteConversationByIdReceiveAction 
+    | DeleteConversationByIdRequestFailedAction;
+
 type ConversationByIdAction = SetConversationAction
     | ConversationByIdRequestAction 
     | ConversationByIdRequestFailedAction
@@ -75,13 +96,41 @@ type ConversationByIdAction = SetConversationAction
 type ConversationByParticipantIdsAction = RequestConversationByParticipantIdsAction
     | ReceiveConversationByParticipantIdsAction;
 
-type KnownAction = ConversationByIdAction | ConversationByParticipantIdsAction;
+type KnownAction = DeleteConversationByIdAction
+    | ConversationByIdAction 
+    | ConversationByParticipantIdsAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
+    deleteConversation: (): AppThunkAction<DeleteConversationByIdAction | HideModalAction> => (dispatch, getState) => {
+        let conversationId = getState().conversationInstance.id;
+        
+        if (!conversationId) return;
+
+        let fetchTask = fetch(`api/Conversation/${ conversationId }`, { credentials: "same-origin",
+                method: "DELETE"
+            })
+            .then(response => response.json() as Promise<boolean>)
+            .then(data => {
+                dispatch({ type: 'HIDE_MODAL', id: "delete-conversation-modal"});
+                if (data) {
+                    dispatch(push('/') as any);
+                    dispatch({ type: 'DELETE_CONVERSATION_BY_ID_RECEIVE', id: conversationId as string });
+                    return;
+                }
+
+                dispatch({ type: 'DELETE_CONVERSATION_BY_ID_REQUEST_FAILED' });
+            })
+            .catch(reason => {
+                dispatch({ type: 'DELETE_CONVERSATION_BY_ID_REQUEST_FAILED' });
+            });
+
+        addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
+        dispatch({ type: 'DELETE_CONVERSATION_BY_ID_REQUEST', id: conversationId });
+    },
     requestConversationById: (id: string): AppThunkAction<ConversationByIdAction | ConversationsState.SelectConversationAction | IUnselectUsersAction> => (dispatch, getState) => {
         if (id !== getState().conversationInstance.id) {
             let conversations = getState().conversations.conversations;
@@ -170,6 +219,7 @@ export const actionCreators = {
 // REDUCER - For a given state and action, returns the new state. To support time travel, this must not mutate the old state.
 
 export const unloadedState: IConversationInstanceState = { 
+    isDeleteLoading: false,
     isLoading: false, 
     title: "", 
     participants: []
@@ -178,6 +228,27 @@ export const unloadedState: IConversationInstanceState = {
 export const reducer: Reducer<IConversationInstanceState> = (state: IConversationInstanceState, incomingAction: Action) => {
     const action = incomingAction as KnownAction;
     switch (action.type) {
+        case 'DELETE_CONVERSATION_BY_ID_REQUEST':
+            return {
+                ...state,
+                isDeleteLoading: true,
+                deleteId: action.id
+            };
+        case 'DELETE_CONVERSATION_BY_ID_REQUEST_FAILED':
+            return {
+                ...state, 
+                isDeleteLoading: false,
+                deleteId: undefined
+            };
+        case 'DELETE_CONVERSATION_BY_ID_RECEIVE':
+            // Only accept the incoming data if it matches the most recent request. This ensures we correctly
+            // handle out-of-order responses.
+            if (action.id === state.deleteId) {
+                return {
+                    ...unloadedState
+                };
+            }
+            break;
         case 'CONVERSATION_BY_ID_REQUEST':
             return {
                 ...state,
@@ -186,6 +257,7 @@ export const reducer: Reducer<IConversationInstanceState> = (state: IConversatio
             };
         case 'SET_CONVERSATION':
             return {
+                ...state,
                 ...action.conversation,
                 isLoading: false
             };
@@ -200,6 +272,7 @@ export const reducer: Reducer<IConversationInstanceState> = (state: IConversatio
             // handle out-of-order responses.
             if (action.conversation.id === state.requestedId) {
                 return {
+                    ...state, 
                     ...action.conversation,
                     isLoading: false,
                     requestedId: undefined

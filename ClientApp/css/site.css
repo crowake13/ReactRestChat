@@ -124,6 +124,10 @@ body {
     width: 100%;
 }
 
+.full-height {
+    height: 100%;
+}
+
 a[disabled] {
     cursor: not-allowed;
     pointer-events: none;
