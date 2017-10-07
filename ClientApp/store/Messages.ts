@@ -1,17 +1,21 @@
 import { fetch, addTask } from 'domain-task';
 import { Action, Reducer, ActionCreator } from 'redux';
+import { push } from 'react-router-redux';
 import { AppThunkAction } from './';
 import { SetConversationAction, DeleteConversationByIdReceiveAction } from './ConversationInstance';
 import { IMessageQueryModel, ReceiveMessageSavedAction } from './Message';
+import { HideModalAction } from './Main';
 
 // -----------------
 // STATE - This defines the type of data maintained in the Redux store.
 
 export interface IMessagesState {
+    isDeleteLoading: boolean;
     areNewLoading: boolean;
     isLoading: boolean;
     hasMore: boolean;
     skip?: number;
+    deleteId?: string;
     newestMessageDate?: string;
     messages: IMessageQueryModel[]
 }
@@ -24,6 +28,20 @@ export interface IMessagesResponse {
 // -----------------
 // ACTIONS - These are serializable (hence replayable) descriptions of state transitions.
 // They do not themselves have any side-effects; they just describe something that is going to happen.
+
+export interface DeleteMessageByIdRequestAction {
+    type: 'DELETE_MESSAGE_BY_ID_REQUEST';
+    id: string;
+}
+
+export interface DeleteMessageByIdReceiveAction {
+    type: 'DELETE_MESSAGE_BY_ID_RECEIVE';
+    id: string;
+}
+
+export interface DeleteMessageByIdRequestFailedAction {
+    type: 'DELETE_MESSAGE_BY_ID_REQUEST_FAILED';
+}
 
 interface RequestNewMessagesAction {
     type: 'REQUEST_NEW_MESSAGES';
@@ -50,16 +68,52 @@ interface ReceiveMessagesAction {
 
 // Declare a 'discriminated union' type. This guarantees that all references to 'type' properties contain one of the
 // declared type strings (and not any other arbitrary string).
+type DeleteMessageByIdAction = DeleteMessageByIdRequestAction 
+| DeleteMessageByIdReceiveAction 
+| DeleteMessageByIdRequestFailedAction;
+
 type NewMessagesAction = RequestNewMessagesAction | ReceiveNewMessagesAction;
 type MessageAction = RequestMessagesAction | ReceiveMessagesAction;
 
-type KnownAction = NewMessagesAction | MessageAction | ReceiveMessageSavedAction | SetConversationAction | DeleteConversationByIdReceiveAction;
+type KnownAction = DeleteMessageByIdAction 
+    | NewMessagesAction 
+    | MessageAction 
+    | ReceiveMessageSavedAction 
+    | SetConversationAction 
+    | DeleteConversationByIdReceiveAction;
 
 // ----------------
 // ACTION CREATORS - These are functions exposed to UI components that will trigger a state transition.
 // They don't directly mutate state, but they can have external side-effects (such as loading data).
 
 export const actionCreators = {
+    showDeleteMessageModal: (id: string): AppThunkAction<DeleteMessageByIdAction | HideModalAction> => (dispatch, getState) => {
+        getState().messages.deleteId = id;
+    },
+    deleteMessage: (): AppThunkAction<DeleteMessageByIdAction | HideModalAction> => (dispatch, getState) => {
+        let id = getState().messages.deleteId;
+        if (!id) return;
+        let fetchTask = fetch(`api/Message/${ id }`, { credentials: "same-origin",
+                method: "DELETE"
+            })
+            .then(response => response.json() as Promise<boolean>)
+            .then(data => {
+                dispatch({ type: 'HIDE_MODAL', id: "delete-message-modal"});
+                if (data) {
+                    dispatch(push('/') as any);
+                    dispatch({ type: 'DELETE_MESSAGE_BY_ID_RECEIVE', id: id as string });
+                    return;
+                }
+
+                dispatch({ type: 'DELETE_MESSAGE_BY_ID_REQUEST_FAILED' });
+            })
+            .catch(reason => {
+                dispatch({ type: 'DELETE_MESSAGE_BY_ID_REQUEST_FAILED' });
+            });
+
+        addTask(fetchTask); // Ensure server-side prerendering waits for this to complete
+        dispatch({ type: 'DELETE_MESSAGE_BY_ID_REQUEST', id: id });
+    },
     requestNewMessages: (): AppThunkAction<NewMessagesAction> => (dispatch, getState) => {
         let messagesState = getState().messages;
 
@@ -106,6 +160,7 @@ export const actionCreators = {
 // REDUCER - For a given state and action, returns the new state. To support time travel, this must not mutate the old state.
 
 export const unloadedState: IMessagesState = { 
+    isDeleteLoading: false,
     areNewLoading: false,
     isLoading: false, 
     hasMore: true, 
@@ -115,6 +170,33 @@ export const unloadedState: IMessagesState = {
 export const reducer: Reducer<IMessagesState> = (state: IMessagesState, incomingAction: Action) => {
     const action = incomingAction as KnownAction;
     switch (action.type) {
+        case 'DELETE_MESSAGE_BY_ID_REQUEST':
+            return {
+                ...state,
+                isDeleteLoading: true,
+                deleteId: action.id
+            };
+        case 'DELETE_MESSAGE_BY_ID_REQUEST_FAILED':
+            return {
+                ...state, 
+                isDeleteLoading: false,
+                deleteId: undefined
+            };
+        case 'DELETE_MESSAGE_BY_ID_RECEIVE':
+            // Only accept the incoming data if it matches the most recent request. This ensures we correctly
+            // handle out-of-order responses.
+            if (action.id === state.deleteId) {
+                let index = state.messages.map(c => c.id).indexOf(action.id);
+                if (index == -1) break;
+                state.messages.splice(index, 1);
+                return {
+                    ...state,
+                    messages: [
+                        ...state.messages
+                    ]
+                };
+            }
+            break;
         case 'REQUEST_NEW_MESSAGES':
             return {
                 ...state, 

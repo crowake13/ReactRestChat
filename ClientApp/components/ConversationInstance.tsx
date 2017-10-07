@@ -63,6 +63,19 @@ class ConversationInstance extends React.Component<IConversationInstanceProps, {
                     </button>
                 </div>
             </Modal>
+            <Modal id="delete-message-modal" title="Delete message">
+                <div key="body" className="row full-height"><div className="col-sm-6 col-sm-push-3 full-height">
+                    <Meme imageSrc="/images/AreYouSure.jpg" topText="Are you shure you want to" bottomText="delete this conversation?" />
+                </div></div>
+                <div key="footer">
+                    <button type="button" className="btn btn-default" data-dismiss="modal">
+                        No
+                    </button>
+                    <button type="button" className="btn btn-danger" onClick={ this.props.deleteMessage }>
+                        Yes
+                    </button>
+                </div>
+            </Modal>
         </div>;
     }
 }

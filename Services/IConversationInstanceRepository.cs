@@ -11,6 +11,6 @@ namespace ReactRestChat.Services
         void CreateConversationInstance(Guid conversationId, Guid messageId, string participantId);
         void CreateConversationInstances(Guid conversationId, Guid messageId, IEnumerable<string> participantIds);
         bool Exists(Guid conversationId, string userId);
-        bool Delete(Guid conversationId, string participantId, Guid lastMessageId);
+        bool Delete(Guid conversationId, string participantId, Guid? lastMessageId);
     }
 }

@@ -18,14 +18,10 @@ class MessageList extends React.Component<IMessageListProps, { timer: number }> 
         clearInterval(this.state.timer);
     }
 
-    deleteMessage = (messageId: string) => {
-        console.info(messageId);
-    };
-
     public render() {
         return <InfiniteScroll className="list-group message-list"
             children={ this.props.messages.map((message, index) => 
-                <MessageListItem key={ index } message={ message } />
+                <MessageListItem key={ index } message={ message } onDelete={ this.props.showDeleteMessageModal.bind(this, message.id) } />
             ) }
             loadMore={ this.props.requestMessages }
             hasMore={ this.props.hasMore }

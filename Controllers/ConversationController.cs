@@ -77,7 +77,11 @@ namespace ReactRestChat.Controllers
 
             ConversationMessageQueryModel message = _conversationMessageRepository.GetLatest(id);
 
-            return _conversationInstanceRepository.Delete(id, userId, message.Id);
+            Guid? messageId = null;
+
+            if (message != null) messageId = message.Id;
+
+            return _conversationInstanceRepository.Delete(id, userId, messageId);
         }
 
         [HttpGet("{conversationId}/[action]")]
@@ -101,7 +105,7 @@ namespace ReactRestChat.Controllers
             IEnumerable<ConversationMessageQueryModel> messages = new List<ConversationMessageQueryModel>();
 
             if (_conversationInstanceRepository.Exists(conversationId, userId)) 
-                messages = _conversationMessageRepository.GetByPage(conversationId, skip, _pageSize);
+                messages = _conversationMessageRepository.GetByPage(userId, conversationId, skip, _pageSize);
 
             int count = messages.Count();
 

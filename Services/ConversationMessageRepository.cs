@@ -20,7 +20,6 @@ namespace ReactRestChat.Services
         private IEnumerable<ConversationMessageQueryModel> ToQueryModel(IEnumerable<ConversationMessage> messages)
         {
             return messages
-                .Where(cm => cm.Deleted == null)
                 .Select(cm => new ConversationMessageQueryModel() 
                 {
                     Id = cm.Id,
@@ -47,6 +46,7 @@ namespace ReactRestChat.Services
         }
 
         public IEnumerable<ConversationMessageQueryModel> GetByPage(
+            string senderId, 
             Guid conversationId, 
             int skip = 0, 
             int? pageSize = null)
@@ -56,8 +56,9 @@ namespace ReactRestChat.Services
                 .Include(cm => cm.Conversation)
                     .ThenInclude(c => c.Instances)
                 .Where(cm => cm.ConversationId == conversationId 
+                    && (cm.Deleted == null || cm.SenderId != senderId)
                     && cm.Conversation.Instances
-                        .Where(ci => ci.Deleted != null)
+                        .Where(ci => ci.Deleted != null && ci.ParticipantId == senderId)
                         .Select(ci => ci.Deleted)
                         .All(date => cm.Created > date))
                 .OrderByDescending(cm => cm.Created)
@@ -72,7 +73,13 @@ namespace ReactRestChat.Services
         {
             var messages = _entity
                 .Include(cm => cm.Sender)
-                .Where(cm => cm.ConversationId == conversationId)
+                .Include(cm => cm.Conversation)
+                    .ThenInclude(c => c.Instances)
+                .Where(cm => cm.ConversationId == conversationId 
+                    && cm.Conversation.Instances
+                        .Where(ci => ci.Deleted != null)
+                        .Select(ci => ci.Deleted)
+                        .All(date => cm.Created > date))
                 .OrderByDescending(cm => cm.Created)
                 .Take(1);
 
@@ -86,6 +93,20 @@ namespace ReactRestChat.Services
                 .Where(cm => cm.Id == id);
 
             return ToQueryModel(messages).FirstOrDefault();
+        }
+
+        public bool DeleteById(string senderId, Guid id)
+        {
+            var message = Read(id);
+
+            if (message == null || message.SenderId != senderId) return false;
+
+            message.Deleted = DateTime.Now;
+
+            Update(message);
+            Save();
+
+            return true;
         }
 
         public ConversationMessageCreateQueryModel CreateMessage(Guid conversationId, string senderId, string content)

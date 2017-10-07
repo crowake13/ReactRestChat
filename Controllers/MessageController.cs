@@ -43,6 +43,14 @@ namespace ReactRestChat.Controllers
             return _conversationMessageRepository.GetById(id);
         }
 
+        [HttpDelete("{id}")]
+        public bool Delete(Guid id)
+        {
+            string userId = _userManager.GetUserId(User);
+
+            return _conversationMessageRepository.DeleteById(userId, id);
+        }
+
         [HttpPost]
         public ConversationMessageCreateQueryModel Create([FromBody] ConversationMessageCommandModel message)
         {
@@ -54,15 +62,11 @@ namespace ReactRestChat.Controllers
 
             Guid conversationId = message.Conversation.Id;
 
-            bool createNewConversation = conversationId == Guid.Empty;
-
-            if (createNewConversation) {
-                var conversationByParticipantIds = _conversationRepository.ParticipantIds(userId, message.Conversation.ParticipantIds);
-
-                createNewConversation = conversationByParticipantIds.Id == Guid.Empty;
+            if (conversationId == Guid.Empty) {
+                conversationId = _conversationRepository.ParticipantIds(userId, message.Conversation.ParticipantIds).Id;
             }
 
-            if (createNewConversation) {
+            if (conversationId == Guid.Empty) {
                 conversationId = _conversationRepository.CreateConversation(message.Conversation.ParticipantIds, message.Conversation.Title);
 
                 if (conversationId == null) throw new Exception("Something went wrong while creating a new conversation. ");
@@ -74,10 +78,8 @@ namespace ReactRestChat.Controllers
 
             if (conversationMessageCreate.Id == null) throw new Exception("Something went wrong while creating a new conversation message. ");
 
-            if (createNewConversation) {
-                _conversationInstanceRepository.CreateConversationInstance(conversationId, conversationMessageCreate.Id, userId);
-                _conversationInstanceRepository.CreateConversationInstances(conversationId, conversationMessageCreate.Id, message.Conversation.ParticipantIds);
-            }
+            _conversationInstanceRepository.CreateConversationInstance(conversationId, conversationMessageCreate.Id, userId);
+            _conversationInstanceRepository.CreateConversationInstances(conversationId, conversationMessageCreate.Id, message.Conversation.ParticipantIds);
 
             return conversationMessageCreate;
         }

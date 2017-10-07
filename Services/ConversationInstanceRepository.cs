@@ -63,7 +63,7 @@ namespace ReactRestChat.Services
             return Find(conversationId, participantId).FirstOrDefault() != null;
         }
 
-        public bool Delete(Guid conversationId, string participantId, Guid lastMessageId)
+        public bool Delete(Guid conversationId, string participantId, Guid? lastMessageId = null)
         {
             if (participantId == null) throw new Exception("Unable to delete a conversation instance without a participant id. ");
 
