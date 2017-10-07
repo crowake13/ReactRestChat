@@ -8,10 +8,10 @@ type IConversationProps = {
 
 class ConversationListItem extends React.Component<IConversationProps, { }> {
     public render() {
-        return <Link to={'/' + this.props.conversation.id} style={{height: "200px"}} className={ "list-group-item" + (this.props.conversation.isActive ? " active" : "") }>
+        return <Link to={'/' + this.props.conversation.id} style={{height: "100px"}} className={ "list-group-item" + (this.props.conversation.isActive ? " active" : "") }>
             <h4 className="list-group-item-heading">{ this.props.conversation.title || "" }</h4>
-            <p className="list-group-item-text">{ this.props.conversation.participants.map(participant => 
-                " " + participant.user.username).filter((x, i, a) => a.indexOf(x) == i).slice(0,3).join() }</p>
+            <p className="list-group-item-text"><b>{ this.props.conversation.participants.map(participant => 
+                " " + participant.user.username).filter((x, i, a) => a.indexOf(x) == i).slice(0,3).join() }</b></p>
         </Link>;
     }
 }
