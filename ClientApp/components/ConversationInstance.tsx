@@ -32,6 +32,9 @@ class ConversationInstance extends React.Component<IConversationInstanceProps, {
         return <div style={{ height: "100%", position: "relative" }}>
             <MessageList />
             <div style={{position: "absolute", right: 0, left: 0, padding: "10px 0", margin: "0 10px", top: 0, zIndex: 1, backgroundColor: "white"}}>
+                <h5>{ this.props.title || "Participants" }{ this.props.participants.map((particiapnt, index) => 
+                    <span key={ index }>{ (index ? ", " : ": ") + particiapnt.user.username }</span>
+                ) }</h5>
                 <MessageInput />
                 <div className="row" style={{marginTop: "10px", display: this.props.id ? "block" : "none"}}>
                     <div className="col-sm-6">

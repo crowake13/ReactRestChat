@@ -13,8 +13,8 @@ class MessageListItem extends React.Component<IMessageListItemProps, { }> {
                 data-keyboard="false">
                 <span className="glyphicon glyphicon-trash"></span>
             </button>
-            <h4 className="list-group-item-heading">{ (this.props.message.sender.username + " " + new Date(this.props.message.created).toLocaleString()) || "" }</h4>
-            <p className="list-group-item-text">{ this.props.message.content }</p>
+            <p className="list-group-item-text">{ this.props.message.sender.username }: { this.props.message.content }</p>
+            <span style={{fontSize: "10px"}}>{ new Date(this.props.message.created).toLocaleString() }</span>
         </span>;
     }
 }
