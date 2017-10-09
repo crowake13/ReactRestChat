@@ -46,7 +46,7 @@ The conversation does not really get deleted. The users conversation instance is
 
 ## Run
 
-Make sure to have [npm](https://www.npmjs.com/) and [bower](https://bower.io/) installed. 
+Make sure to have [npm](https://www.npmjs.com/) and [bower](https://bower.io/) installed. Navigate to application folder and run:
 
 ```
 npm install
