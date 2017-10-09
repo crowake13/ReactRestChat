@@ -35,3 +35,21 @@ The message does not really get deleted. The message is marked as deleted and i 
 ### Delete a conversation
 
 The conversation does not really get deleted. The users conversation instance is marked as deleted and is never shown to the user again while the other participants see the normal conversation history.
+
+## Installation
+
+* Download and install [.NET Core 2.0](https://github.com/dotnet/core/blob/master/release-notes/download-archives/2.0.0-download.md)
+* Clone this repository
+* Navigate to application folder and run `dotnet restore`
+* Create a MS SQL database (details under "ConnectionStrings" in [appsettings.json](https://github.com/crowake13/ReactRestChat/blob/master/appsettings.json))
+* Navigate to application folder and run `dotnet ef database update`
+
+##Run
+
+Make sure to have [npm](https://www.npmjs.com/) and [bower](https://bower.io/) installed. 
+
+```
+npm install
+bower install
+dotnet run
+```
