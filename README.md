@@ -44,7 +44,7 @@ The conversation does not really get deleted. The users conversation instance is
 * Create a MS SQL database (details under "ConnectionStrings" in [appsettings.json](https://github.com/crowake13/ReactRestChat/blob/master/appsettings.json))
 * Navigate to application folder and run `dotnet ef database update`
 
-##Run
+## Run
 
 Make sure to have [npm](https://www.npmjs.com/) and [bower](https://bower.io/) installed. 
 
