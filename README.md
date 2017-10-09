@@ -25,7 +25,7 @@ This is a simple chat web application built with [.NET Core 2.0](https://blogs.m
 
 * View participants
 * View messages in descending order of creation as an infinite scrolling list
-* Refresh messages
+* Refresh messages (dediccated button and automatically every 10 seconds)
 * Send a new message
 
 ### Delete a message (only your own)
@@ -53,3 +53,10 @@ npm install
 bower install
 dotnet run
 ```
+
+## Future tasks
+
+- [ ] hide message delete button on other users messages
+- [ ] refresh converation list
+- [ ] preview last message in conversation list
+- [ ] add/edit conversation title
